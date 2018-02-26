@@ -1,44 +1,55 @@
 var games = {}
-exports.startGame = (p1, p2) => {
+
+exports.startGame = (p1Socket, p2Socket) => {
     var gameId = generateId()
-    games[gameId] = (getNewBoard(p1, p2))
-    return gameId
+    // console.log('initial p1Socket value: ',p1Socket)
+    games[gameId] = {
+        board: getNewBoard(),
+        p1: { socket: p1Socket, color: 'white' },
+        p2: { socket: p2Socket, color: 'black' },
+        currTurn: 'white',
+    }
+    return gameId + ''
 }
 
+exports.getSockets = gameId => {
+    if (!games[gameId]) console.log('game cannot be found')
+    // return { p1Sockt: games[gameId].p1.socket, p2Socket: games[gameId].p2.socket }
+    var sockets = { p1: games[gameId].p1.socket, p2: games[gameId].p2.socket }
+    return sockets
+}
 exports.movePiece = ({ gameId, moveTo, moveFrom }) => {
     var pieceToMove = games[gameId].board[moveFrom]
+    var socketToUpdate
     games[gameId].board[moveTo] = pieceToMove
     games[gameId].board[moveFrom] = 'empty'
     // console.log(games[gameId].board)
     console.log('moving', pieceToMove, 'from', moveFrom, 'to', moveTo)
     if (games[gameId].currTurn === 'white') {
         games[gameId].currTurn = 'black'
-        sessionIdToUpdate = games[gameId].p2.sessionId
+        socketToUpdate = games[gameId].p1.socket
     } else {
         games[gameId].currTurn = 'white'
-        sessionIdToUpdate = games[gameId].p1.sessionId
+        socketToUpdate = games[gameId].p2.socket
     }
 
-    return sessionIdToUpdate
+    return socketToUpdate
 }
+
 
 function generateId() {
     return Date.now()
 }
-function getNewBoard(p1SessionId, p2SessionId) {
-    var game = {
-        p1: { sessionId: p1SessionId, color: 'white' },
-        p2: { sessionId: p2SessionId, color: 'black' },
-        currTurn: 'white',
-        board: {}
-    };
+function getNewBoard() {
+
+    var board = {}
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
             var piece = getPieceLoc(i, j)
-            game.board[i + '-' + j] = piece
+            board[i + '-' + j] = piece
         }
     }
-    return game
+    return board
 }
 
 function getPieceLoc(i, j) {
