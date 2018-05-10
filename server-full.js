@@ -84,7 +84,7 @@ app.get('/logout', function (req, res) {
 
 
 http.listen(port, function () {
-	console.log(`misterREST server is ready at ${baseUrl}`);
+	console.log(`chess server is ready at ${baseUrl}`);
 	console.log(`GET (list): \t\t ${baseUrl}/{entity}`);
 	console.log(`GET (single): \t\t ${baseUrl}/{entity}/{id}`);
 	console.log(`DELETE: \t\t ${baseUrl}/{entity}/{id}`);
