@@ -46,8 +46,7 @@ function dbConnect() {
 			if (err) {
 				cl('Cannot connect to DB', err)
 				reject(err);
-			}
-			else {
+			} else {
 				cl("Connected to DB");
 				resolve(db);
 			}
@@ -56,22 +55,52 @@ function dbConnect() {
 }
 
 
+app.post('/changepass', function (req, res) {
+	console.log('change pass request: ', req.body)
+	dbConnect().then((db) => {
+		console.log('attempting password change: ', req.body)
+		db.collection('users').updateOne({
+				username: req.body.username,
+				pass: req.body.oldPass
+			}, {
+				$set: {
+					pass: req.body.newPass
+				}
+			},
+			function (err, r) {
+				if (err) {
+					console.log('change password failed', err)
+					res.status(400).json({
+						error: 'change password failed'
+					})
+				} else res.status(200).json({
+					username,
+					newPass
+				})
+			}
+		)
+	})
+})
 
 // Basic Login
 app.post('/login', function (req, res) {
 	console.log(req.body)
 	dbConnect().then((db) => {
-		db.collection('users').findOne({ username: req.body.username, pass: req.body.pass }, function (err, user) {
+		db.collection('users').findOne({
+			username: req.body.username,
+			pass: req.body.pass
+		}, function (err, user) {
 			if (user) {
-				console.log(user ,' has connected')
+				console.log(user, ' has connected')
 				res.status(200).json(user)
-			}
-			else{
+			} else {
 				console.log('login failed')
-				res.status(400).json({error: 'login failed'})
+				res.status(400).json({
+					error: 'login failed'
+				})
 			}
+		});
 	});
-});
 })
 
 //logout
@@ -104,43 +133,55 @@ app.post('/signup', function (req, res) {
 
 			} else {
 				cl('Signup NOT Succesful');
-				res.json(403, { error: 'Signup failed' })
+				res.json(403, {
+					error: 'Signup failed'
+				})
 			}
 			db.close();
 		});
 	});
 });
 
+
 var playerQued = null
+var playerQuedId = null
 io.on('connection', function (socket) {
-	console.log('user has connected');
 	socket.on('disconnect', function () {
-		console.log('user disconnected');
+		if (playerQuedId === socket.id) {
+			playerQued = null
+			playerQuedId = null
+		}
+		chessManager.cleanGames(socket.id)
+		console.log('user disconnected', socket.id);
 	});
 	socket.on('searchGame', function () {
 		console.log('search game was initiated')
 		if (playerQued !== null) {
 			var gameId = chessManager.startGame(playerQued, socket)
-			playerQued.emit('gameFound', { color: 'black', gameId });
-			socket.emit('gameFound', { color: 'white', gameId });
+			playerQued.emit('gameFound', {
+				color: 'black',
+				gameId
+			});
+			socket.emit('gameFound', {
+				color: 'white',
+				gameId
+			});
 			playerQued = null
-		}
-		else {
+			playerQuedId = null
+		} else {
 			playerQued = socket
+			playerQuedId = socket.id
 		}
 	})
 	socket.on('movePiece', function (moveInfo) {
 		var socketToUpdate = chessManager.movePiece(moveInfo)
 		socketToUpdate.emit('updateBoard', moveInfo)
-		// socket.emit('updateBoard',moveInfo)
 	})
 	socket.on('sendMsg', function (msgInfo) {
 		var sockets = chessManager.getSockets(msgInfo.gameId)
 		console.log('sending msg', msgInfo)
-		// console.log('p1 session id:', bla.p1Socket)
-		// console.log('p2 session id:', bla.p2Socket)
-		sockets.p1.emit('forwardMsg', msgInfo )
-		sockets.p2.emit('forwardMsg', msgInfo )
+		sockets.p1.emit('forwardMsg', msgInfo)
+		sockets.p2.emit('forwardMsg', msgInfo)
 	})
 })
 
